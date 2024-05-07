@@ -23,7 +23,7 @@ variable "new_service_account_name" {
 ## ---------------------------------------------------------------------------------------------------------------------
 
 variable "roles_list" {
-  type        = list
+  type        = list(any)
   description = "List of GCP IAM Roles to bind to the new Service Account"
   default     = []
 }

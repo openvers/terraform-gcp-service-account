@@ -1,0 +1,219 @@
+# Original Work: https://github.com/Azure-Samples/terraform-github-actions/blob/main/.github/workflows/tf-plan-apply.yml
+
+name: 'Terraform Integration Test'
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+  workflow_run:
+    workflows: ["README Workflow Dispatch"]
+    types:
+      - completed
+
+#Special permissions required for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  GOOGLE_PROJECT: "${{ secrets.GOOGLE_PROJECT }}"
+  GOOGLE_OAUTH_ACCESS_TOKEN: "${{ secrets.GOOGLE_OAUTH_ACCESS_TOKEN }}"
+  TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+
+jobs:
+  terraform-integration-plan:
+    name: 'Terraform Plan'
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    
+    defaults:
+        run:
+          working-directory: "./test"
+    env:
+      #this is needed since we are running terraform with read-only permissions
+      ARM_SKIP_PROVIDER_REGISTRATION: true
+    
+    outputs:
+      tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure GCP Credentials - Github Runner
+      uses: 'google-github-actions/auth@v2'
+      if: ${{ !github.event.act }}
+      with:
+        service_account: "${{ secrets.impersonate_service_account_email }}"
+        workload_identity_provider: "${{ secrets.workload_identity_provider }}"
+
+    # Install the latest version of the Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_wrapper: false
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    # Will fail the build if not
+    - name: Terraform Format
+      run: terraform fmt -check
+
+    # Generates an execution plan for Terraform
+    # An exit code of 0 indicated no changes, 1 a terraform failure, 2 there are pending changes.
+    - name: Terraform Plan
+      id: tfplan
+      run: |
+        export exitcode=0
+        terraform plan -detailed-exitcode -no-color -out tfplan || export exitcode=$?
+
+        echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+        
+        if [ $exitcode -eq 1 ]; then
+          echo Terraform Plan Failed!
+          exit 1
+        else 
+          exit 0
+        fi
+        
+    # Save plan to artifacts  
+    - name: Publish Terraform Plan
+      uses: actions/upload-artifact@v3
+      with:
+        name: tfplan
+        path: test/tfplan
+        
+    # Create string output of Terraform Plan
+    - name: Create String Output
+      id: tf-plan-string
+      run: |
+        TERRAFORM_PLAN=$(terraform show -no-color tfplan)
+        
+        delimiter="$(openssl rand -hex 8)"
+        echo "summary<<${delimiter}" >> $GITHUB_OUTPUT
+        echo "## Terraform Plan Output" >> $GITHUB_OUTPUT
+        echo "<details><summary>Click to expand</summary>" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo '```terraform' >> $GITHUB_OUTPUT
+        echo "$TERRAFORM_PLAN" >> $GITHUB_OUTPUT
+        echo '```' >> $GITHUB_OUTPUT
+        echo "</details>" >> $GITHUB_OUTPUT
+        echo "${delimiter}" >> $GITHUB_OUTPUT
+        
+    # Publish Terraform Plan as task summary
+    - name: Publish Terraform Plan to Task Summary
+      env:
+        SUMMARY: ${{ steps.tf-plan-string.outputs.summary }}
+      run: |
+        echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
+      
+    # If this is a PR post the changes
+    - name: Push Terraform Output to PR
+      if: github.ref != 'refs/heads/main'
+      uses: actions/github-script@v7
+      env:
+        SUMMARY: "${{ steps.tf-plan-string.outputs.summary }}"
+      with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const body = `${process.env.SUMMARY}`;
+            github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+            })
+                
+  terraform-integration-apply:
+    name: 'Terraform Apply'
+    if: github.event.act || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+        run:
+          working-directory: "./test"
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure GCP Credentials - Github Runner
+      uses: 'google-github-actions/auth@v2'
+      if: ${{ !github.event.act }}
+      with:
+        service_account: "${{ secrets.impersonate_service_account_email }}"
+        workload_identity_provider: "${{ secrets.workload_identity_provider }}"
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
+
+    # Download saved plan from artifacts  
+    - name: Download Terraform Plan
+      id: tf-plan-download
+      uses: actions/download-artifact@v3
+      with:
+        name: tfplan
+        path: artifact/tfplan
+
+    # Terraform Apply
+    - name: Terraform Apply
+      run: terraform apply -auto-approve ${{ steps.tf-plan-download.outputs.download-path}}/tfplan
+  
+  terraform-integration-destroy:
+    name: 'Terraform Destroy'
+    if: always()
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [ terraform-integration-apply ]
+    defaults:
+      run:
+        working-directory: "./test"
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure GCP Credentials - Github Runner
+      uses: 'google-github-actions/auth@v2'
+      if: ${{ !github.event.act }}
+      with:
+        service_account: "${{ secrets.impersonate_service_account_email }}"
+        workload_identity_provider: "${{ secrets.workload_identity_provider }}"
+    
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
+    
+    # Terraform Destroy
+    - name: Terraform Destroy
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        retry_on: error
+        command: 'terraform -chdir=test destroy --auto-approve'

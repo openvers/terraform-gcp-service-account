@@ -10,7 +10,7 @@ Defines a blank provider to retrieve access tokens via Service Account Impersona
 with seperate aliases to define duties by Service Account. This provider is termed
 "tokengen", and its purpose to just for requesting access keys via Servie Impersonation.
 */
-terraform{
+terraform {
   required_providers {
     google = {
       source = "hashicorp/google"
@@ -47,11 +47,16 @@ locals {
   project = "cloud-auth"
 }
 
-locals  {
-  suffix     = "${random_string.this.id}-${local.program}-${local.project}"
+locals {
+  suffix = "${random_string.this.id}-${local.program}-${local.project}"
   roles_list = distinct(concat(var.roles_list, [
     "roles/iam.serviceAccountUser",
+    "roles/iam.serviceAccountTokenCreator",
   ]))
+  impersonate_role_list = [
+    "roles/iam.serviceAccountUser",
+    "roles/iam.serviceAccountTokenCreator",
+  ]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -66,14 +71,14 @@ locals  {
 ## - `scopes`: The list of scopes for which the access token is requested.
 ## ---------------------------------------------------------------------------------------------------------------------
 data "google_service_account_access_token" "impersonate" {
-  provider               = google.tokengen
-  
+  provider = google.tokengen
+
   target_service_account = var.IMPERSONATE_SERVICE_ACCOUNT_EMAIL
   lifetime               = "600s"
-  scopes                 = [
-      "https://www.googleapis.com/auth/cloud-platform",
-      "https://www.googleapis.com/auth/userinfo.email",
-    ]
+  scopes = [
+    "https://www.googleapis.com/auth/cloud-platform",
+    "https://www.googleapis.com/auth/userinfo.email",
+  ]
 }
 
 
@@ -113,13 +118,14 @@ data "google_project" "this" {
 ## - `project`: The Google Cloud Platform project ID.
 ## ---------------------------------------------------------------------------------------------------------------------
 resource "google_service_account" "this" {
-  provider     = google.creator
+  provider = google.creator
 
   account_id   = var.new_service_account_name
   display_name = "service-account-${local.suffix}"
   project      = data.google_project.this.number
 }
 
+data "google_client_openid_userinfo" "this" {}
 
 ## ---------------------------------------------------------------------------------------------------------------------
 ## GOOGLE SERVICE ACCOUNT IAM BINDING RESOURCE
@@ -137,10 +143,11 @@ resource "google_service_account" "this" {
 ## - This resource is using the "google.creator" provider alias, which authenticates using an access token.
 ## ---------------------------------------------------------------------------------------------------------------------
 resource "google_service_account_iam_binding" "this" {
-  provider           = google.creator
-  
+  for_each = toset(local.impersonate_role_list)
+  provider = google.creator
+
   service_account_id = google_service_account.this.name
-  role               = "roles/iam.serviceAccountTokenCreator"
+  role               = each.value
   members            = ["serviceAccount:${var.IMPERSONATE_SERVICE_ACCOUNT_EMAIL}"]
 }
 
@@ -179,7 +186,7 @@ resource "google_project_iam_member" "this" {
 ## - `create_duration`: The duration for which to wait before proceeding with the next steps.
 ## ---------------------------------------------------------------------------------------------------------------------
 resource "time_sleep" "iam_propagation" {
-  depends_on      = [google_project_iam_member.this]
+  depends_on = [google_project_iam_member.this]
 
   create_duration = "60s"
 }
@@ -195,13 +202,11 @@ resource "time_sleep" "iam_propagation" {
 ## - `scopes`: The list of OAuth 2.0 scopes to include in the access token.
 ## ---------------------------------------------------------------------------------------------------------------------
 data "google_service_account_access_token" "this" {
-  provider               = google.creator
-  depends_on             = [time_sleep.iam_propagation]
+  provider   = google.creator
+  depends_on = [time_sleep.iam_propagation]
 
   target_service_account = google_service_account.this.email
-  scopes                 = [
+  scopes = [
     "https://www.googleapis.com/auth/cloud-platform",
-    "https://www.googleapis.com/auth/userinfo.email",
   ]
 }
-
