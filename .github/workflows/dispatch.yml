@@ -34,14 +34,22 @@ jobs:
         
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Configure GCP Credentials - Github Runner
+        id: auth
         uses: 'google-github-actions/auth@v2'
         if: ${{ !github.event.act }}
         with:
           service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
           workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+          token_format: 'access_token'
+          access_token_lifetime: '300s'
+      
+      - name: Set Github Runner ENV variables
+        if: "${{ !github.event.act }}"
+        run: |
+          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> $GITHUB_ENV
   
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -66,7 +74,7 @@ jobs:
       
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure GCP Credentials - Github Runner
         uses: 'google-github-actions/auth@v2'
@@ -74,6 +82,13 @@ jobs:
         with:
           service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
           workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+          token_format: 'access_token'
+          access_token_lifetime: '300s'
+      
+      - name: Set Github Runner ENV variables
+        if: "${{ !github.event.act }}"
+        run: |
+          echo "GOOGLE_OAUTH_ACCESS_TOKEN=${{ steps.auth.outputs.access_token }}" >> $GITHUB_ENV
   
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
