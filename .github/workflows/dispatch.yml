@@ -18,9 +18,9 @@ permissions:
   contents: read  # This is required for actions/checkout
 
 env:
-  GOOGLE_PROJECT: "${{ secrets.GOOGLE_PROJECT }}"
+  GOOGLE_PROJECT: "${{ secrets.GCP_PROJECT }}"
   GOOGLE_OAUTH_ACCESS_TOKEN: "${{ secrets.GOOGLE_OAUTH_ACCESS_TOKEN }}"
-  TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+  TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
 
 jobs:
   terraform-dispatch-read:
@@ -40,8 +40,8 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         if: ${{ !github.event.act }}
         with:
-          service_account: "${{ secrets.impersonate_service_account_email }}"
-          workload_identity_provider: "${{ secrets.workload_identity_provider }}"
+          service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+          workload_identity_provider: "${{ secrets.GCP_WORKFLOW_IDENTITY_PROVIDER }}"
   
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -72,8 +72,8 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         if: ${{ !github.event.act }}
         with:
-          service_account: "${{ secrets.impersonate_service_account_email }}"
-          workload_identity_provider: "${{ secrets.workload_identity_provider }}"
+          service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+          workload_identity_provider: "${{ secrets.GCP_WORKFLOW_IDENTITY_PROVIDER }}"
   
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
