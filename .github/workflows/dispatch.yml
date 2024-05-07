@@ -41,7 +41,7 @@ jobs:
         if: ${{ !github.event.act }}
         with:
           service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
-          workload_identity_provider: "${{ secrets.GCP_WORKFLOW_IDENTITY_PROVIDER }}"
+          workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
   
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -73,7 +73,7 @@ jobs:
         if: ${{ !github.event.act }}
         with:
           service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
-          workload_identity_provider: "${{ secrets.GCP_WORKFLOW_IDENTITY_PROVIDER }}"
+          workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
   
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
