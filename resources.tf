@@ -49,14 +49,6 @@ locals {
 
 locals {
   suffix = "${random_string.this.id}-${local.program}-${local.project}"
-  roles_list = distinct(concat(var.roles_list, [
-    "roles/iam.serviceAccountUser",
-    "roles/iam.serviceAccountTokenCreator",
-  ]))
-  impersonate_role_list = [
-    "roles/iam.serviceAccountUser",
-    "roles/iam.serviceAccountTokenCreator",
-  ]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -143,7 +135,7 @@ data "google_client_openid_userinfo" "this" {}
 ## - This resource is using the "google.creator" provider alias, which authenticates using an access token.
 ## ---------------------------------------------------------------------------------------------------------------------
 resource "google_service_account_iam_binding" "this" {
-  for_each = toset(local.impersonate_role_list)
+  for_each = toset(var.impersonate_role_list)
   provider = google.creator
 
   service_account_id = google_service_account.this.name
@@ -163,7 +155,7 @@ resource "google_service_account_iam_binding" "this" {
 ## - `member`: The email address of the service account.
 ## ---------------------------------------------------------------------------------------------------------------------
 resource "google_project_iam_member" "this" {
-  for_each = toset(local.roles_list)
+  for_each = toset(var.roles_list)
   provider = google.creator
 
   project = data.google_project.this.number

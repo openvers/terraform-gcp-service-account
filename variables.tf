@@ -23,7 +23,16 @@ variable "new_service_account_name" {
 ## ---------------------------------------------------------------------------------------------------------------------
 
 variable "roles_list" {
-  type        = list(any)
+  type        = list(string)
   description = "List of GCP IAM Roles to bind to the new Service Account"
-  default     = []
+  default     = ["roles/iam.serviceAccountUser"]
+}
+
+variable "impersonate_role_list" {
+  type        = list(string)
+  description = "List of GCP IAM Roles to bind to the Impersonating User"
+  default     = [
+    "roles/iam.serviceAccountUser",
+    "roles/iam.serviceAccountTokenCreator",
+  ]
 }
