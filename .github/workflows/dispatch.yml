@@ -60,7 +60,10 @@ jobs:
     environment: production
     if: "${{ github.event.act || github.event.inputs.terraform_operation == 'apply' || github.event.inputs.terraform_operation == 'destroy' }}"
     runs-on: ubuntu-latest
-      
+    
+    env:
+      TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+
     defaults:
       run:
         working-directory: "./test"

@@ -153,6 +153,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     
+    - uses: 'github/actions-oidc-debugger@main'
+      with:
+        audience: 'https://iam.googleapis.com/${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+    
     - name: Configure GCP Credentials - Github Runner
       uses: 'google-github-actions/auth@v2'
       if: ${{ !github.event.act }}
