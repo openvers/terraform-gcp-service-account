@@ -57,11 +57,18 @@ act -j terraform-dispatch-write \
 mkdir /tmp/artifacts
 
 # Run the full Integration test with
+act -j terraform-integration-plan \
+  -e .github/local.json \
+  --secret-file ~/creds/gcp.secrets \
+  --remote-name $(git remote show) \
+  --artifact-server-path /tmp/artifacts
+
 act -j terraform-integration-destroy \
-    -e .github/local.json \
-    --secret-file ~/creds/gcp.secrets \
-    --remote-name $(git remote show) \ 
-    --artifact-server-path /tmp/artifacts
+  -e .github/local.json \
+  --secret-file ~/creds/gcp.secrets \
+  --remote-name $(git remote show) \
+  --artifact-server-path /tmp/artifacts
+
 ```
 
 ### Unit Testing

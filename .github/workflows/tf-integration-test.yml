@@ -140,6 +140,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     needs: [ terraform-integration-plan ]
+    
+    env:
+      TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+
     defaults:
         run:
           working-directory: "./test"
@@ -184,6 +188,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     needs: [ terraform-integration-apply ]
+
+    env:
+      TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+    
     defaults:
       run:
         working-directory: "./test"
