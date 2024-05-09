@@ -16,21 +16,21 @@ on:
 jobs:
   terraform-dispatch-plan:
     if: ${{ github.event.act || github.event.inputs.terraform_operation == 'plan' }}
-    uses: ./.github/workflows/reusable/dispatch/tf-read-plan.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-dispatch-plan.yml@GCPv1
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}
   
   terraform-dispatch-apply:
     if: ${{ github.event.act ||github.event.inputs.terraform_operation == 'apply' }}
-    uses: ./.github/workflows/reusable/dispatch/tf-write-apply.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-dispatch-apply.yml@GCPv1
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}
 
   terraform-dispatch-destroy:
     if: ${{ github.event.act ||github.event.inputs.terraform_operation == 'destroy' }}
-    uses: ./.github/workflows/reusable/dispatch/tf-write-destroy.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-dispatch-destroy.yml@GCPv1
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}

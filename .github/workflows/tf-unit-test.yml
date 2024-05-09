@@ -1,5 +1,3 @@
-# Original work: https://github.com/Azure-Samples/terraform-github-actions/blob/main/.github/workflows/tf-unit-tests.yml
-
 name: 'Terraform Unit Tests'
 
 on:
@@ -7,7 +5,7 @@ on:
 
 jobs:
   terraform-unit-tests:
-    uses: ./.github/workflows/reusable/unit-test/tf-unit-test.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-unit-test.yml@GCPv1
     name: 'Terraform Unit Tests'
     secrets: inherit
     with:

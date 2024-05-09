@@ -1,5 +1,3 @@
-# Original Work: https://github.com/Azure-Samples/terraform-github-actions/blob/main/.github/workflows/tf-plan-apply.yml
-
 name: 'Terraform Integration Test'
 
 on:
@@ -17,7 +15,7 @@ on:
 jobs:
   terraform-integration-plan:
     if: github.actor != 'github-actions[bot]'
-    uses: ./.github/workflows/reusable/integration/tf-plan.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-integration-plan.yml@GCPv1
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}
@@ -25,7 +23,7 @@ jobs:
   terraform-integration-apply:
     if: github.event.act || github.ref == 'refs/heads/main'
     needs: [ terraform-integration-plan ]
-    uses: ./.github/workflows/reusable/integration/tf-apply.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-integration-apply.yml@GCPv1
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}
@@ -35,7 +33,7 @@ jobs:
   terraform-integration-destroy:
     if: always()
     needs: [ terraform-integration-apply]
-    uses: ./.github/workflows/reusable/integration/tf-destroy.yml
+    uses: sim-parables/github-workflows-reusable/.github/workflows/tf-integration-destroy.yml@GCPv1
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}
