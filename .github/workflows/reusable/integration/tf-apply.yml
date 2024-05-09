@@ -1,0 +1,82 @@
+# Original Work: https://github.com/Azure-Samples/terraform-github-actions/blob/main/.github/workflows/tf-plan-apply.yml
+
+name: '[Reusable] Terraform Apply'
+
+on:
+  workflow_call:
+    inputs:
+      ACT_MODE:
+        required: true
+        type: boolean
+      TF_PLAN_PATH:
+        required: true
+        type: string
+      TF_PLAN_NAME:
+        required: true
+        type: string
+
+    secrets:
+      GCP_IMPERSONATE_SERVICE)ACCOUNT_EMAIL:
+        required: true
+      GCP_PROJECT:
+        required: true
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: false
+      GOOGLE_OAUTH_ACCESS_TOKEN:
+        required: false
+      TF_API_TOKEN:
+        required: true
+
+#Special permissions required for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  GOOGLE_PROJECT: "${{ secrets.GCP_PROJECT }}"
+  GOOGLE_OAUTH_ACCESS_TOKEN: "${{ secrets.GOOGLE_OAUTH_ACCESS_TOKEN }}"
+  TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+
+jobs:
+  reusable-integration-apply:
+    name: 'Terraform Apply'
+    environment: production
+    runs-on: ubuntu-latest
+
+    defaults:
+        run:
+          working-directory: "./test"
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure GCP Credentials - Github Runner
+      uses: 'google-github-actions/auth@v2'
+      if: ${{ !inputs.ACT_MODE }}
+      with:
+        service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+        workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
+
+    # Download saved plan from artifacts  
+    - name: Download Terraform Plan
+      id: tf-plan-download
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.TF_PLAN_NAME }}
+        path: ${{ inputs.TF_PLAN_PATH }}
+
+    # Terraform Apply
+    - name: Terraform Apply
+      run: terraform apply -auto-approve ${{ steps.tf-plan-download.outputs.download-path }}/${{ inputs.TF_PLAN_NAME }}

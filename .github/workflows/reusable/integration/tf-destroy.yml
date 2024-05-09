@@ -1,0 +1,73 @@
+# Original Work: https://github.com/Azure-Samples/terraform-github-actions/blob/main/.github/workflows/tf-plan-apply.yml
+
+name: '[Reusable] Terraform Destroy'
+
+on:
+  workflow_call:
+    inputs:
+      ACT_MODE:
+        required: true
+        type: boolean
+    
+    secrets:
+      GCP_IMPERSONATE_SERVICE)ACCOUNT_EMAIL:
+        required: true
+      GCP_PROJECT:
+        required: true
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: false
+      GOOGLE_OAUTH_ACCESS_TOKEN:
+        required: false
+      TF_API_TOKEN:
+        required: true
+
+#Special permissions required for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  GOOGLE_PROJECT: "${{ secrets.GCP_PROJECT }}"
+  GOOGLE_OAUTH_ACCESS_TOKEN: "${{ secrets.GOOGLE_OAUTH_ACCESS_TOKEN }}"
+  TF_VAR_IMPERSONATE_SERVICE_ACCOUNT_EMAIL: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+
+jobs:
+  reusable-integration-destroy:
+    name: 'Terraform Destroy'
+    environment: production
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: "./test"
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure GCP Credentials - Github Runner
+      uses: 'google-github-actions/auth@v2'
+      if: ${{ !inputs.ACT_MODE }}
+      with:
+        service_account: "${{ secrets.GCP_IMPERSONATE_SERVICE_ACCOUNT_EMAIL }}"
+        workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+    
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform init
+    
+    # Terraform Destroy
+    - name: Terraform Destroy
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        retry_on: error
+        command: 'terraform -chdir=test destroy --auto-approve'

@@ -43,16 +43,22 @@ sed -i -E "s/(GOOGLE_OAUTH_ACCESS_TOKEN\=).*/\1$(gcloud auth print-access-token)
 
 ```
 # Try the Terraform Read job first
-act -j terraform-dispatch-read \
+act -j terraform-dispatch-plan \
     -e .github/local.json \
     --secret-file ~/creds/gcp.secrets \
     --remote-name $(git remote show)
 
 # Use the Terraform Write job to apply/destroy the infra configuration
-act -j terraform-dispatch-write \
+act -j terraform-dispatch-apply \
     -e .github/local.json \
     --secret-file ~/creds/gcp.secrets \
     --remote-name $(git remote show)
+
+act -j terraform-dispatch-destroy \
+    -e .github/local.json \
+    --secret-file ~/creds/gcp.secrets \
+    --remote-name $(git remote show)
+
 ```
 
 ### Integration Testing
