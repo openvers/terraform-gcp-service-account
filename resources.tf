@@ -21,7 +21,12 @@ terraform {
   }
 }
 
-data "google_client_config" "default" {
+## ---------------------------------------------------------------------------------------------------------------------
+## GOOGLE PROJECT DATA SOURCE
+## 
+## GCP Project Configurations/Details Data Source.
+## ---------------------------------------------------------------------------------------------------------------------
+data "google_project" "this" {
   provider = google.tokengen
 }
 
@@ -86,16 +91,7 @@ data "google_service_account_access_token" "impersonate" {
 provider "google" {
   alias        = "creator"
   access_token = data.google_service_account_access_token.impersonate.access_token
-}
-
-
-## ---------------------------------------------------------------------------------------------------------------------
-## GOOGLE PROJECT DATA SOURCE
-## 
-## GCP Project Configurations/Details Data Source.
-## ---------------------------------------------------------------------------------------------------------------------
-data "google_project" "this" {
-  provider = google.creator
+  project      = data.google_project.this.project_id
 }
 
 
@@ -114,10 +110,8 @@ resource "google_service_account" "this" {
 
   account_id   = var.new_service_account_name
   display_name = "service-account-${local.suffix}"
-  project      = data.google_project.this.number
+  project      = data.google_project.this.project_id
 }
-
-data "google_client_openid_userinfo" "this" {}
 
 ## ---------------------------------------------------------------------------------------------------------------------
 ## GOOGLE SERVICE ACCOUNT IAM BINDING RESOURCE
@@ -158,7 +152,7 @@ resource "google_project_iam_member" "this" {
   for_each = toset(var.roles_list)
   provider = google.creator
 
-  project = data.google_project.this.number
+  project = data.google_project.this.project_id
   role    = each.value
   member  = google_service_account.this.member
 }
