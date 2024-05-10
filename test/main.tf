@@ -35,7 +35,7 @@ resource "random_string" "this" {
 locals {
   suffix                           = random_string.this.id
   wif_provider_attribute_condition = "assertion.repository_owner == '${var.GITHUB_REPOSITORY_OWNER}'"
-  wif_provider_subject_assertion   = coalesce([
+  wif_provider_subject_assertion = coalesce([
     var.GITHUB_REF != null ? "repo:${var.GITHUB_REPOSITORY}:ref:${var.GITHUB_REF}" : "",
     var.GITHUB_ENV != null ? "repo:${var.GITHUB_REPOSITORY}:env:${var.GITHUB_ENV}" : "",
   ])
@@ -67,7 +67,7 @@ module "gcp_service_account" {
 
   IMPERSONATE_SERVICE_ACCOUNT_EMAIL = var.IMPERSONATE_SERVICE_ACCOUNT_EMAIL
   new_service_account_name          = var.new_service_account_name
-  roles_list                        = [
+  roles_list = [
     "roles/iam.serviceAccountUser",
     "roles/iam.serviceAccountAdmin",
     "roles/iam.workloadIdentityPoolAdmin"
@@ -103,8 +103,8 @@ provider "google" {
 ## - `google.tokengen`: Alias for the GCP provider for generating service accounts.
 ##---------------------------------------------------------------------------------------------------------------------
 module "gcp_workload_identity_federation" {
-  source = "../modules/workflow_identity_federation_github"
-  depends_on = [ module.gcp_service_account ]
+  source     = "../modules/workflow_identity_federation_github"
+  depends_on = [module.gcp_service_account]
 
   pool_id                      = "example-github-wif-pool-${local.suffix}"
   provider_id                  = "example-github-wif-provider-${local.suffix}"
@@ -134,13 +134,13 @@ data "google_project" "this" {
 ## - `google.tokengen`: Alias for the GCP provider for generating service accounts.
 ##---------------------------------------------------------------------------------------------------------------------
 module "gcp_workload_identity_federation_princiapl" {
-  source = "../modules/workflow_identity_federation_principal"
-  depends_on = [ module.gcp_workload_identity_federation ]
+  source     = "../modules/workflow_identity_federation_principal"
+  depends_on = [module.gcp_workload_identity_federation]
 
-  project_number               = data.google_project.this.number
-  pool_id                      = module.gcp_workload_identity_federation.workload_identity_pool_id
-  service_account_id           = module.gcp_service_account.service_account_id
-  provider_subject_assertion   = local.wif_provider_subject_assertion
+  project_number             = data.google_project.this.number
+  pool_id                    = module.gcp_workload_identity_federation.workload_identity_pool_id
+  service_account_id         = module.gcp_service_account.service_account_id
+  provider_subject_assertion = local.wif_provider_subject_assertion
 
   providers = {
     google.auth_session = google.auth_session

@@ -11,7 +11,7 @@ terraform {
 
 locals {
   member_roles = distinct([
-    for pair in setproduct(var.provider_subject_assertion, var.roles_list):
+    for pair in setproduct(var.provider_subject_assertion, var.roles_list) :
     {
       principal = coalesce(
         "principal://iam.googleapis.com/projects/${var.project_number}",
