@@ -17,3 +17,8 @@ output "service_account_name" {
   description = "Authenticated Service Account Name"
   value       = google_service_account.this.name
 }
+
+output "service_account_id" {
+  description = "Authenticated Service Account ID"
+  value       = google_service_account.this.id
+}

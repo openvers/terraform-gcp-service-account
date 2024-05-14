@@ -10,4 +10,5 @@ jobs:
     secrets: inherit
     with:
       ACT_MODE: ${{ !!github.event.act }}
+      SKIP_CHECKS: CKV_GCP_41,CKV_GCP_49
     

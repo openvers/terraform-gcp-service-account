@@ -29,10 +29,10 @@ jobs:
       ACT_MODE: ${{ !!github.event.act }}
       TF_PLAN_PATH: "${{ needs.terraform-integration-plan.outputs.TF_PLAN_PATH }}"
       TF_PLAN_NAME: "${{ needs.terraform-integration-plan.outputs.TF_PLAN_NAME }}"
-                
+  
   terraform-integration-destroy:
     if: always()
-    needs: [ terraform-integration-apply]
+    needs: [ terraform-integration-apply ]
     uses: sim-parables/github-workflows-reusable/.github/workflows/tf-integration-destroy.yml@GCPv1
     secrets: inherit
     with:
