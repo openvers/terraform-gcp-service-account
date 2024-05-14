@@ -13,9 +13,12 @@ variable "pool_id" {
   description = "GCP Worflow Identity Federation Pool ID"
 }
 
-variable "provider_subject_assertion" {
-  type        = list(string)
-  description = "List of Provider IAM Member OIDC Token Subject Assertions"
+variable "principal_roles" {
+  description = "List of WIF Principal Member to Role mappings"
+  type        = list(object({
+    principal = string,
+    role = string
+  }))
 }
 
 variable "service_account_id" {
@@ -28,10 +31,3 @@ variable "service_account_id" {
 ## These variables have defaults and may be overridden
 ## ---------------------------------------------------------------------------------------------------------------------
 
-variable "roles_list" {
-  type        = list(string)
-  description = "List of IAM Roles to bind to Principal Set Permissions"
-  default = [
-    "roles/iam.workloadIdentityUser"
-  ]
-}

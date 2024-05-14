@@ -9,20 +9,6 @@ terraform {
   }
 }
 
-locals {
-  member_roles = distinct([
-    for pair in setproduct(var.provider_subject_assertion, var.roles_list) :
-    {
-      principal = coalesce(
-        "principal://iam.googleapis.com/projects/${var.project_number}",
-        "/locations/global/workloadIdentityPools/${var.pool_id}",
-        "/subject/${pair[0]}"
-      ),
-      role = pair[1]
-    }
-  ])
-}
-
 ## ---------------------------------------------------------------------------------------------------------------------
 ## GOOGLE SERVICE ACCOUNT IAM MEMBER
 ##
@@ -30,12 +16,11 @@ locals {
 ##
 ## Parameters:
 ## - `service_account_id`: Service Account ID.
-## - `role`: The role to assign to the service account.
-## - `member`: The Workflow Identity Federation Provider Member ID and token subject assertion.
+## - `principal_roles`: The list of Principal/Role mappings to assign to the service account.
 ## ---------------------------------------------------------------------------------------------------------------------
 resource "google_service_account_iam_member" "this" {
   provider = google.auth_session
-  for_each = tomap({ for t in local.member_roles : "${t.principal}-${t.role}" => t })
+  for_each = tomap({ for t in var.principal_roles : "${t.principal}-${t.role}" => t })
 
   service_account_id = var.service_account_id
   role               = each.value.role

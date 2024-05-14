@@ -28,6 +28,12 @@ variable "roles_list" {
   default     = []
 }
 
+variable "WIF_ID" {
+  type        = string
+  description = "GCP Worflow Identify Federation Resources ID"
+  default     = "sim-parables-wif"
+}
+
 variable "GITHUB_REPOSITORY_OWNER" {
   type        = string
   description = "Github Actions Default ENV Variable for the Repo Owner"

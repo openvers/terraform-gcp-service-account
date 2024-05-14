@@ -9,30 +9,10 @@ terraform {
   }
 }
 
-## ---------------------------------------------------------------------------------------------------------------------
-## RANDOM STRING RESOURCE
-##
-## This resource generates a random string of a specified length.
-##
-## Parameters:
-## - `special`: Whether to include special characters in the random string.
-## - `upper`: Whether to include uppercase letters in the random string.
-## - `length`: The length of the random string.
-## ---------------------------------------------------------------------------------------------------------------------
-resource "random_string" "this" {
-  special = false
-  upper   = false
-  length  = 4
-}
-
 locals {
   cloud   = "gcp"
   program = "wif"
   project = "cloud-auth"
-}
-
-locals {
-  suffix = "${random_string.this.id}-${local.program}-${local.project}"
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -50,7 +30,7 @@ locals {
 resource "google_iam_workload_identity_pool" "this" {
   provider = google.auth_session
 
-  workload_identity_pool_id = substr("${local.suffix}-${var.pool_id}", 0, 32)
+  workload_identity_pool_id = substr(var.pool_id, 0, 32)
   display_name              = substr(var.pool_name, 0, 32)
   description               = var.pool_description
   disabled                  = false
@@ -75,7 +55,7 @@ resource "google_iam_workload_identity_pool_provider" "this" {
   provider = google.auth_session
 
   workload_identity_pool_id          = google_iam_workload_identity_pool.this.workload_identity_pool_id
-  workload_identity_pool_provider_id = substr("${local.suffix}-${var.provider_id}", 0, 32)
+  workload_identity_pool_provider_id = substr(var.provider_id, 0, 32)
   display_name                       = substr(var.provider_name, 0, 32)
   description                        = var.provider_description
   disabled                           = false

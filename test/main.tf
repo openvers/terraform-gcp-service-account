@@ -16,29 +16,25 @@ terraform {
   }
 }
 
-## ---------------------------------------------------------------------------------------------------------------------
-## RANDOM STRING RESOURCE
-##
-## This resource generates a random string of a specified length.
-##
-## Parameters:
-## - `special`: Whether to include special characters in the random string.
-## - `upper`: Whether to include uppercase letters in the random string.
-## - `length`: The length of the random string.
-## ---------------------------------------------------------------------------------------------------------------------
-resource "random_string" "this" {
-  special = false
-  upper   = false
-  length  = 4
+data "google_project" "this" {
+  provider = google.auth_session
 }
 
 locals {
-  suffix                           = random_string.this.id
+  pool_id                          = "github-pool-${var.WIF_ID}"
+  provider_id                      = "github-provider-${var.WIF_ID}"
   wif_provider_attribute_condition = "assertion.repository_owner == '${var.GITHUB_REPOSITORY_OWNER}'"
-  wif_provider_subject_assertion = coalesce([
-    var.GITHUB_REF != null ? "repo:${var.GITHUB_REPOSITORY}:ref:${var.GITHUB_REF}" : "",
-    var.GITHUB_ENV != null ? "repo:${var.GITHUB_REPOSITORY}:env:${var.GITHUB_ENV}" : "",
-  ])
+
+  principal_roles = [
+    {
+      principal = "principal://iam.googleapis.com/projects/${data.google_project.this.number}/locations/global/workloadIdentityPools/${local.pool_id}/subject/repo:${var.GITHUB_REPOSITORY}:ref:${var.GITHUB_REF}",
+      role      = "roles/iam.workloadIdentityUser"
+    },
+    {
+      principal = "principal://iam.googleapis.com/projects/${data.google_project.this.number}/locations/global/workloadIdentityPools/${local.pool_id}/subject/repo:${var.GITHUB_REPOSITORY}:environment:${var.GITHUB_ENV}",
+      role      = "roles/iam.workloadIdentityUser"
+    },
+  ]
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
@@ -106,17 +102,13 @@ module "gcp_workload_identity_federation" {
   source     = "../modules/workflow_identity_federation_github"
   depends_on = [module.gcp_service_account]
 
-  pool_id                      = "example-github-wif-pool-${local.suffix}"
-  provider_id                  = "example-github-wif-provider-${local.suffix}"
+  pool_id                      = local.pool_id
+  provider_id                  = local.provider_id
   provider_attribute_condition = local.wif_provider_attribute_condition
 
   providers = {
     google.auth_session = google.auth_session
   }
-}
-
-data "google_project" "this" {
-  provider = google.auth_session
 }
 
 ##---------------------------------------------------------------------------------------------------------------------
@@ -133,14 +125,14 @@ data "google_project" "this" {
 ## Providers:
 ## - `google.tokengen`: Alias for the GCP provider for generating service accounts.
 ##---------------------------------------------------------------------------------------------------------------------
-module "gcp_workload_identity_federation_princiapl" {
+module "gcp_workload_identity_federation_principal" {
   source     = "../modules/workflow_identity_federation_principal"
   depends_on = [module.gcp_workload_identity_federation]
 
-  project_number             = data.google_project.this.number
-  pool_id                    = module.gcp_workload_identity_federation.workload_identity_pool_id
-  service_account_id         = module.gcp_service_account.service_account_id
-  provider_subject_assertion = local.wif_provider_subject_assertion
+  project_number     = data.google_project.this.number
+  pool_id            = module.gcp_workload_identity_federation.workload_identity_pool_id
+  service_account_id = module.gcp_service_account.service_account_id
+  principal_roles    = local.principal_roles
 
   providers = {
     google.auth_session = google.auth_session
