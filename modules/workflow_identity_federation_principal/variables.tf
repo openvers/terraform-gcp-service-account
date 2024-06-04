@@ -13,11 +13,16 @@ variable "pool_id" {
   description = "GCP Worflow Identity Federation Pool ID"
 }
 
+variable "provider_id" {
+  type        = string
+  description = "GCP Worflow Identity Federation Pool Provider ID"
+}
+
 variable "principal_roles" {
   description = "List of WIF Principal Member to Role mappings"
-  type        = list(object({
+  type = list(object({
     principal = string,
-    role = string
+    role      = string
   }))
 }
 

@@ -49,7 +49,7 @@ variable "GITHUB_REPOSITORY" {
 variable "GITHUB_REF" {
   type        = string
   description = "Github Actions Default ENV Variable for full form of the Branch or Tag"
-  default     = null
+  default     = "refs/heads/main"
 }
 
 variable "GITHUB_ENV" {
@@ -59,5 +59,5 @@ variable "GITHUB_ENV" {
     This is not found in Github Action's Default Environment Variables and will need to be
     defined manually.
   EOT
-  default     = null
+  default     = "production"
 }

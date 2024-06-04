@@ -16,6 +16,11 @@ terraform {
   }
 }
 
+## ---------------------------------------------------------------------------------------------------------------------
+## GOOGLE PROJECT DATA SOURCE
+## 
+## GCP Project Configurations/Details Data Source.
+## ---------------------------------------------------------------------------------------------------------------------
 data "google_project" "this" {
   provider = google.auth_session
 }
@@ -131,6 +136,7 @@ module "gcp_workload_identity_federation_principal" {
 
   project_number     = data.google_project.this.number
   pool_id            = module.gcp_workload_identity_federation.workload_identity_pool_id
+  provider_id        = reverse(split("/", module.gcp_workload_identity_federation.workload_identity_provider_id))[0]
   service_account_id = module.gcp_service_account.service_account_id
   principal_roles    = local.principal_roles
 

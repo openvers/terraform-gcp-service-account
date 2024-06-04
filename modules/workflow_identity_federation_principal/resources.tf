@@ -10,6 +10,15 @@ terraform {
 }
 
 ## ---------------------------------------------------------------------------------------------------------------------
+## GOOGLE PROJECT DATA SOURCE
+## 
+## GCP Project Configurations/Details Data Source.
+## ---------------------------------------------------------------------------------------------------------------------
+data "google_project" "this" {
+  provider = google.auth_session
+}
+
+## ---------------------------------------------------------------------------------------------------------------------
 ## GOOGLE SERVICE ACCOUNT IAM MEMBER
 ##
 ## This resource assigns a role to a GCP service account at the IAM Member level.
