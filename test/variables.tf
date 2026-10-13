@@ -17,6 +17,11 @@ variable "new_service_account_name" {
   description = "New GCP Service Account to be created"
 }
 
+variable "WORKLOAD_IDENTITY_POOL_ID" {
+  type        = string
+  description = "Existing GCP Workload Identity Pool ID"
+}
+
 ## ---------------------------------------------------------------------------------------------------------------------
 ## OPTIONAL PARAMETERS
 ## These variables have defaults and may be overridden
@@ -28,22 +33,22 @@ variable "roles_list" {
   default     = []
 }
 
-variable "WIF_ID" {
+variable "workload_identity_provider_id" {
   type        = string
-  description = "GCP Worflow Identify Federation Resources ID"
-  default     = "sim-parables-wif"
+  description = "GCP Worflow Identify Federation Provider ID"
+  default     = "example-wif-provider"
 }
 
 variable "GITHUB_REPOSITORY_OWNER" {
   type        = string
   description = "Github Actions Default ENV Variable for the Repo Owner"
-  default     = "sim-parables"
+  default     = "openvers"
 }
 
 variable "GITHUB_REPOSITORY" {
   type        = string
   description = "Github Actions Default ENV Variable for the Repo Path"
-  default     = "sim-parables/terraform-gcp-service-account"
+  default     = "openvers/terraform-gcp-service-account"
 }
 
 variable "GITHUB_REF" {

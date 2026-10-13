@@ -1,2 +1,3 @@
 test/.terraform/*
 test/.terraform.lock.hcl
+.tmp

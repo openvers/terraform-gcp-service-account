@@ -26,8 +26,7 @@ data "google_project" "this" {
 }
 
 locals {
-  pool_id                          = "github-pool-${var.WIF_ID}"
-  provider_id                      = "github-provider-${var.WIF_ID}"
+  pool_id                          = var.WORKLOAD_IDENTITY_POOL_ID
   wif_provider_attribute_condition = "assertion.repository_owner == '${var.GITHUB_REPOSITORY_OWNER}'"
 
   principal_roles = [
@@ -59,9 +58,6 @@ provider "google" {
 ## Parameters:
 ## - `IMPERSONATE_SERVICE_ACCOUNT_EMAIL`: Existing GCP service account email to impersonate for new SA creation.
 ## - `new_service_account_name`: New service account name.
-##
-## Providers:
-## - `google.tokengen`: Alias for the GCP provider for generating service accounts.
 ##---------------------------------------------------------------------------------------------------------------------
 module "gcp_service_account" {
   source = "../"
@@ -71,7 +67,7 @@ module "gcp_service_account" {
   roles_list = [
     "roles/iam.serviceAccountUser",
     "roles/iam.serviceAccountAdmin",
-    "roles/iam.workloadIdentityPoolAdmin"
+    "roles/iam.workloadIdentityPoolAdmin",
   ]
 
   providers = {
@@ -93,52 +89,25 @@ provider "google" {
 ## GCP WORKLOAD IDENTITY FEDERATION MODULE
 ##
 ## This module provisions and configures a GCP Workload Identity Federation Pool & Provider to enable short lived
-## authorization via OpenID Connect with trustred partner Github.
+## authorization via OpenID Connect with trustred partner Github. It also grants the configured principals access
+## to impersonate the target service account.
 ##
 ## Parameters:
 ## - `pool_id`: Given Workload Identity Federation Pool ID.
 ## - `provider_id`: Given Workload Identity Federation Provider ID.
 ## - `provider_attribute_condition`: CEL expression to validate token requests.
-##
-## Providers:
-## - `google.tokengen`: Alias for the GCP provider for generating service accounts.
+## - `service_account_id`: Service Account ID to impersonate with the Workload Identity Provider.
+## - `principal_roles`: Principal-to-role mappings for Service Account IAM bindings.
 ##---------------------------------------------------------------------------------------------------------------------
 module "gcp_workload_identity_federation" {
-  source     = "../modules/workflow_identity_federation_github"
+  source     = "../modules/workflow_identity_federation"
   depends_on = [module.gcp_service_account]
 
-  pool_id                      = local.pool_id
-  provider_id                  = local.provider_id
+  pool_id                      = var.WORKLOAD_IDENTITY_POOL_ID
+  provider_id                  = var.workload_identity_provider_id
   provider_attribute_condition = local.wif_provider_attribute_condition
-
-  providers = {
-    google.auth_session = google.auth_session
-  }
-}
-
-##---------------------------------------------------------------------------------------------------------------------
-## GCP WORKLOAD IDENTITY FEDERATION PRINCIPAL MODULE
-##
-## This module grants access to the GCP Workload Identity Federation Pool & Provider to a specific Service Account
-## with defined role set permissions.
-##
-## Parameters:
-## - `pool_id`: Given Workload Identity Federation Pool ID.
-## - `service_account_id`: Service Account Email to Impersonate with Identity Workflow Provider
-## - `provider_subject_assertion`: Token subject assertion for IAM Member Principal Set.
-##
-## Providers:
-## - `google.tokengen`: Alias for the GCP provider for generating service accounts.
-##---------------------------------------------------------------------------------------------------------------------
-module "gcp_workload_identity_federation_principal" {
-  source     = "../modules/workflow_identity_federation_principal"
-  depends_on = [module.gcp_workload_identity_federation]
-
-  project_number     = data.google_project.this.number
-  pool_id            = module.gcp_workload_identity_federation.workload_identity_pool_id
-  provider_id        = reverse(split("/", module.gcp_workload_identity_federation.workload_identity_provider_id))[0]
-  service_account_id = module.gcp_service_account.service_account_id
-  principal_roles    = local.principal_roles
+  service_account_id           = module.gcp_service_account.service_account_id
+  principal_roles              = local.principal_roles
 
   providers = {
     google.auth_session = google.auth_session

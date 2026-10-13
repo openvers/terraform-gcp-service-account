@@ -174,7 +174,7 @@ resource "google_project_iam_member" "this" {
 resource "time_sleep" "iam_propagation" {
   depends_on = [google_project_iam_member.this]
 
-  create_duration = "60s"
+  create_duration = "90s"
 }
 
 

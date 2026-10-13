@@ -34,7 +34,7 @@ variable "impersonate_role_list" {
   type        = list(string)
   description = "List of GCP IAM Roles to bind to the Impersonating User"
   default = [
-    "roles/iam.serviceAccountUser",
+    "roles/iam.serviceAccountAdmin",
     "roles/iam.serviceAccountTokenCreator",
   ]
 }
